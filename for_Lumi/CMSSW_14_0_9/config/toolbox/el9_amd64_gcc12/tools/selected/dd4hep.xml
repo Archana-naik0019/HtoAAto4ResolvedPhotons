@@ -1,0 +1,5 @@
+<tool name="dd4hep" version="v01-27-02-a6ef809309a233b7a9b01d4a9fd04976">
+  <lib name="DDAlign" />
+  <lib name="DDCond" />
+  <use name="dd4hep-core"/>
+</tool>

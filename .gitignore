@@ -1,0 +1,6 @@
+*.root
+*.pyc
+__pycache__/
+*.log
+*.out
+*.err

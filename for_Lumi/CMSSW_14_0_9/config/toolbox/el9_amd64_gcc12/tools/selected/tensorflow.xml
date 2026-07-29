@@ -1,0 +1,9 @@
+<tool name="tensorflow" version="2.12.0-56ca17f4dd95f093a501c2ddea2603f2">
+  <client>
+    <environment name="TENSORFLOW_BASE" default="/cvmfs/cms.cern.ch/el9_amd64_gcc12/external/tensorflow/2.12.0-56ca17f4dd95f093a501c2ddea2603f2"/>
+    <environment name="LIBDIR" default="$TENSORFLOW_BASE/lib"/>
+    <environment name="INCLUDE" default="$TENSORFLOW_BASE/include"/>
+  </client>
+  <runtime name="PATH" value="$TENSORFLOW_BASE/bin" type="path"/>
+  <flags SYSTEM_INCLUDE="1"/>
+</tool>

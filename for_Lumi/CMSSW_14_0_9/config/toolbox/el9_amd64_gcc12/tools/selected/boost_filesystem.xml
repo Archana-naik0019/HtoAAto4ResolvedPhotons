@@ -1,0 +1,6 @@
+<tool name="boost_filesystem" version="1.80.0-5ddc09113811f5f52eb43354ccd50ccb">
+  <info url="http://www.boost.org"/>
+  <lib name="boost_filesystem"/>
+  <use name="boost_system"/>
+  <use name="boost"/>
+</tool>

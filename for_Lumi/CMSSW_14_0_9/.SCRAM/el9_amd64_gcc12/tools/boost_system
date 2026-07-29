@@ -1,0 +1,10 @@
+{
+  "LIB": [
+    "boost_system"
+  ],
+  "TOOLNAME": "boost_system",
+  "TOOLVERSION": "1.80.0-5ddc09113811f5f52eb43354ccd50ccb",
+  "USE": [
+    "boost"
+  ]
+}

@@ -1,0 +1,5 @@
+<tool name="boost_regex" version="1.80.0-5ddc09113811f5f52eb43354ccd50ccb">
+  <info url="http://www.boost.org"/>
+  <lib name="boost_regex"/>
+  <use name="boost"/>
+</tool>

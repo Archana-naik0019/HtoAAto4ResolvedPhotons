@@ -1,0 +1,10 @@
+{
+  "LIB": [
+    "Gui"
+  ],
+  "TOOLNAME": "rootgui",
+  "TOOLVERSION": "6.30.03-ca7ca986842b225f6fc22ae84d705ed8",
+  "USE": [
+    "rootgpad"
+  ]
+}
