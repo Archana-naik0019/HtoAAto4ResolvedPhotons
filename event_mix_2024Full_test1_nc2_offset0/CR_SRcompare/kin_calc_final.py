@@ -5,45 +5,31 @@ ROOT.gROOT.SetBatch(True)
 
 # best diphoton pairing, this is to get the a1, a2 candidates------------
 
-def findBestPairing(g1, g2, g3, g4, debug=False):
+def findBestPairing(g1, g2, g3, g4):
 
     pairings = [
 
-        ((g1+g2), (g3+g4), (0,1,2,3), "(1,2)-(3,4)"),
+        ((g1+g2), (g3+g4), (0,1,2,3)),
 
-        ((g1+g3), (g2+g4), (0,2,1,3), "(1,3)-(2,4)"),
+        ((g1+g3), (g2+g4), (0,2,1,3)),
 
-        ((g1+g4), (g2+g3), (0,3,1,2), "(1,4)-(2,3)")
+        ((g1+g4), (g2+g3), (0,3,1,2))
 
     ]
 
     best = None
     bestDiff = 1e9
 
-    if debug:
-        print("\n--------------------------------------------")
+    for a1, a2, indices in pairings:
 
-    for a1, a2, indices, label in pairings:
+        diff = abs(a1.M() - a2.M())
 
-        dm = abs(a1.M() - a2.M())
+        if diff < bestDiff:
 
-        if debug:
-            print(f"{label}")
-            print(f"   m(a1) = {a1.M():8.3f} GeV")
-            print(f"   m(a2) = {a2.M():8.3f} GeV")
-            print(f"   |Δm|  = {dm:8.3f} GeV")
+            bestDiff = diff
+            best = (a1, a2, indices)
 
-        if dm < bestDiff:
-            bestDiff = dm
-            best = (a1, a2, indices, label)
-
-    if debug:
-        print("--------------------------------------------")
-        print(f"Chosen pairing : {best[3]}")
-        print(f"Minimum |Δm|   : {bestDiff:.3f} GeV")
-        print("--------------------------------------------")
-
-    return best[0], best[1], best[2]
+    return best
 #-------------------------------------------------------------------
 
 files = {
@@ -53,7 +39,7 @@ files = {
 
 mass_points = [15,20,25,30,35,40,45,50,55,60] # added since I want the "inter-mass" distributions separated for the different mass points
 
-outfile = ROOT.TFile("PhotonPlots_debug.root","RECREATE")
+outfile = ROOT.TFile("PhotonPlots_improv.root","RECREATE")
 
 
 
@@ -220,7 +206,7 @@ for dirname, filename in files.items():
             100,-0.5,0.5)
 
 
-    nentries = min(10, tree.GetEntries())
+    nentries = tree.GetEntries()
 
     for iev in range(nentries):
 
@@ -260,8 +246,7 @@ for dirname, filename in files.items():
         m4g = (g1+g2+g3+g4).M()
 
         # Best pairing
-        print(f"\n========== Event {iev} ==========")
-        a1, a2, idx = findBestPairing(g1, g2, g3, g4, debug=True)
+        a1, a2, idx = findBestPairing(g1, g2, g3, g4)
         i1, i2, i3, i4 = idx
 
         # Define a1 as the leading-pT pseudoscalar
