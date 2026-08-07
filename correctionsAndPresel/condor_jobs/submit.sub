@@ -1,0 +1,21 @@
+universe = vanilla
+
+executable = /eos/home-a/arnaik/Higgs_AA_3Photons_analysis/Data_2024/resolved_4photons/correctionsAndPresel/condor_jobs/run_single_file.sh
+arguments = $(input) $(era) $(outdir)
+
+notification = never
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_output_files = ""
+getenv = True
+
+request_memory = 4000MB
+request_cpus = 1
+
++JobFlavour = "nextweek"
+
+output = condor_jobs/out/$(Cluster)_$(Process).out
+error  = condor_jobs/err/$(Cluster)_$(Process).err
+log    = condor_jobs/logs/$(Cluster).log
+
+queue input,era,outdir from /eos/home-a/arnaik/Higgs_AA_3Photons_analysis/Data_2024/resolved_4photons/correctionsAndPresel/condor_jobs/jobs.txt

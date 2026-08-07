@@ -1,0 +1,12 @@
+selection,events
+initial_events,37
+2photons,37
+pt_cuts,33
+hoe,20
+r9,20
+sigma_ieie,14
+photonIso,12
+trackerIso,11
+eta,11
+pixelSeed,4
+miniAOD,4

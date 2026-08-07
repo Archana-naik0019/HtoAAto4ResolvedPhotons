@@ -442,7 +442,36 @@ class HggBaseProcessor(processor.ProcessorABC):  # type: ignore
 
             if len(events) == 0:
                 logger.warning("No events survive photon preselection.")
-                return histos_etc
+                #------------------------------------------------
+                # Empty dataframe
+                df = pandas.DataFrame()
+            
+                # Save cutflow
+                cutflow = (
+                    pandas.Series(Nevents, name="events")
+                    .rename_axis("selection")
+                    .reset_index()
+                )
+            
+                # Write output
+                outdir = self.output_location if self.output_location else "."
+                pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
+            
+                df.to_parquet(
+                    os.path.join(outdir, "photons.parquet"),
+                    index=False,
+                )
+            
+                cutflow.to_csv(
+                    os.path.join(outdir, "cutflow.csv"),
+                    index=False,
+                )
+            
+                logger.info("Saved empty output files.")
+                #------------------------------fixing this crash-----
+
+                
+                return histos_etc #its crashing here...need to fix this!!
 
             # Keep only the leading four photons
             photons = photons[:, :4]
