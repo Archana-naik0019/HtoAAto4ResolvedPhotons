@@ -1,0 +1,23 @@
+universe = vanilla
+
+executable = /eos/home-a/arnaik/Higgs_AA_3Photons_analysis/Data_2024/resolved_4photons/NanoAOD_skimming/Skimmer/condor_jobs_skimmer/run_single_file.sh
+arguments = $(job_idx)
+
+x509userproxy = /tmp/x509up_u186038
+use_x509userproxy = True
+transfer_input_files = /tmp/x509up_u186038
+
+notification = never
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+MY.OutputDestination = "root://eosuser.cern.ch//eos/user/a/arnaik/Higgs_AA_3Photons_analysis/Data_2024/resolved_4photons/NanoAOD_skimming/Skimmer/2024C_updated6missing"
+getenv = True
+
+request_memory = 30000MB
+request_cpus = 1
+
++JobFlavour = "nextweek"
+
+log = /eos/home-a/arnaik/Higgs_AA_3Photons_analysis/Data_2024/resolved_4photons/NanoAOD_skimming/Skimmer/condor_jobs_skimmer/logs/$(Cluster).log
+
+queue job_idx from /eos/home-a/arnaik/Higgs_AA_3Photons_analysis/Data_2024/resolved_4photons/NanoAOD_skimming/Skimmer/condor_jobs_skimmer/jobs.txt

@@ -1,0 +1,11 @@
+Summed cutflow
+==============================
+Number of ROOT files: 414
+
+initial_events            315211957
+lumi_mask                 311701010
+hlt                       15431643
+4photons_candidates       304473
+eta_cuts                  235230
+pixelSeed                 30531
+pt_cut_12GeV              24234
