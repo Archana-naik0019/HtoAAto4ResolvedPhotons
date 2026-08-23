@@ -92,30 +92,30 @@ class TreeHelper:
 
         # Need to make this manually, or the lists will be the same in memory
         self.nObjList = {
-            "nboostedTau": [None, None],
-            "nCorrT1METJet": [None, None],
+            #"nboostedTau": [None, None],
+            #"nCorrT1METJet": [None, None],
             "nElectron": [None, None],
-            "nFatJet": [None, None],
-            "nFsrPhoton": [None, None],
-            "nIsoTrack": [None, None],
+            #"nFatJet": [None, None],
+            #"nFsrPhoton": [None, None],
+            #"nIsoTrack": [None, None],
             "nJet": [None, None],
             #"nL1EG": [None, None],
             #"nL1EtSum": [None, None],
             #"nL1Jet": [None, None],
             #"nL1Mu": [None, None],
             #"nL1Tau": [None, None],
-            "nLowPtElectron": [None, None],
+            #"nLowPtElectron": [None, None],
             #"nProton_multiRP": [None, None],
-            "nMuon": [None, None],
+            #"nMuon": [None, None],
             #"nPPSLocalTrack": [None, None],
-            "nSoftActivityJet": [None, None],
+            #"nSoftActivityJet": [None, None],
             #"nProton_singleRP": [None, None],
-            "nSubJet": [None, None],
+            #"nSubJet": [None, None],
             #"nTauProd": [None, None],
-            "nTau": [None, None],
-            "nTrigObj": [None, None],
-            "nOtherPV": [None, None],
-            "nSV": [None, None],
+            #"nTau": [None, None],
+            #"nTrigObj": [None, None],
+            #"nOtherPV": [None, None],
+            #"nSV": [None, None],
         }
 
         self.skip_branches = set([
@@ -252,6 +252,12 @@ class TreeHelper:
 
         # Get n<obj> variable to determine lengths of corresponding object arrays for this event. This exclude Photon_* branches
         for nObj in self.nObjList.keys():
+
+            leaf = to_shuffle.GetLeaf(nObj)
+            if not leaf:
+                # Branch isn't present in skimmed ROOT file; skip silently
+                continue
+
             try:
                 self.nObjList[nObj][0] = int(to_shuffle.GetLeaf(nObj).GetValue())
             except ReferenceError:
@@ -512,7 +518,8 @@ if __name__ == "__main__":
 
     # Load Golden JSON
     golden_event_loop = []
-    if args.goldenJSON is not None:
+    has_lumi_branches = hasattr(in_tree, "luminosityBlock") and hasattr(in_tree, "run") #addedByme
+    if args.goldenJSON is not None and has_lumi_branches: #modifiedByme
         with open(args.goldenJSON, "r") as f:
             golden_json = json.load(f)
 
