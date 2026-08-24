@@ -65,6 +65,9 @@ class NanoReducer:
             store.add_temp("genWeight_original", genWeight)
             store.add_temp("original_index", original_index)
 
+            sum_genw_orig = float(ak.sum(genWeight))
+            n_events_orig = len(genWeight)
+
             store.add_metadata("sum_genw_presel", float(ak.sum(genWeight)))
             store.add_metadata("n_events_presel", len(genWeight))
         else:
@@ -97,10 +100,9 @@ class NanoReducer:
         store.add_metadata("cutflow_lumi_mask", int(ak.sum(lumi_mask)))
 
         # -------------------------------------------------------------
-        # STEP 2: HLT Trigger Filtering
+        # STEP 2: HLT Trigger Filtering (Data Only)
         # -------------------------------------------------------------
-        # Typically HLT is required for Data; if MC, self.apply_trigger can be passed as False
-        if self.apply_trigger:
+        if not is_mc and self.apply_trigger:
             trigger_masks = []
             for trg in self.trigger_paths:
                 try:
@@ -118,7 +120,6 @@ class NanoReducer:
                 hlt_mask = ak.ones_like(original_index, dtype=bool)
         else:
             hlt_mask = ak.ones_like(original_index, dtype=bool)
-
         # Combine Lumi + HLT
         lumi_hlt_mask = lumi_mask & hlt_mask
         store.add_metadata("cutflow_hlt", int(ak.sum(lumi_hlt_mask)))
@@ -193,6 +194,10 @@ class NanoReducer:
                 pass
 
         if is_mc:
+
+            store.add_scalar(
+                "sum_genw_presel", ak.full_like(genWeight[event_mask], sum_genw_orig)
+            )
 
             for branch in SCALARS_MC:
                 print(f"Reading MC scalar {branch}")

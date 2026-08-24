@@ -168,7 +168,8 @@ class TreeHelper:
         tree: ROOT.TTree,
         logger: logging.Logger,
         noSkim: bool = False,
-        golden: str = None
+        golden: str = None,
+        isMC: bool = False
     ) -> ROOT.TTree:
         """
         Skims TTree by applying a 4 photons cut and checking the HLT bit ("just as good" alternative to messy preselections + corrections business).
@@ -186,7 +187,7 @@ class TreeHelper:
         # Check for HLT bit so we can increase likelihood of good events later!
         hlt = "HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId == 1"
 
-        if not args.noSkim:
+        if not noSkim and golden is not None:
             return tree.CopyTree(f"{n_photons} && {hlt}")
         else:
             return tree.CopyTree(f"{n_photons}")
