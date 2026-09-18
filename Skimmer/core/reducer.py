@@ -77,14 +77,12 @@ class NanoReducer:
             store.add_temp("original_index", original_index)
             store.add_metadata("n_events_presel", len(run_num))
 
-        #
+        
         # Initial Cutflow Trackers
-        #
         n_all = len(original_index)
         store.add_metadata("cutflow_all", n_all)
 
-        # -------------------------------------------------------------
-        # STEP 1: Lumi Mask Filtering (Data Only)
+        # 1: Lumi Mask Filtering (Data Only)
         # -------------------------------------------------------------
         if not is_mc and self.apply_lumimask and self.lumimask_json:
             run_arr = self.reader.read_scalar("run")
@@ -99,8 +97,7 @@ class NanoReducer:
 
         store.add_metadata("cutflow_lumi_mask", int(ak.sum(lumi_mask)))
 
-        # -------------------------------------------------------------
-        # STEP 2: HLT Trigger Filtering (Data Only)
+        # 2: HLT Trigger Filtering (Data Only)
         # -------------------------------------------------------------
         if not is_mc and self.apply_trigger:
             trigger_masks = []
@@ -112,7 +109,6 @@ class NanoReducer:
                     print(f"Trigger branch {trg} not found in input file.")
 
             if len(trigger_masks) > 0:
-                # Logical OR across requested trigger paths
                 hlt_mask = trigger_masks[0]
                 for m in trigger_masks[1:]:
                     hlt_mask = hlt_mask | m
@@ -134,7 +130,7 @@ class NanoReducer:
             print(f"Reading {collection}")
             obj = self.reader.read(collection)
 
-            # Whitelist filter: keep defined fields, drop everything else
+            # keep defined fields, drop everything else
             if collection in KEEP_FIELDS:
                 fields_to_keep = KEEP_FIELDS[collection]
                 fields_to_drop = [f for f in obj.fields if f not in fields_to_keep]
@@ -143,21 +139,18 @@ class NanoReducer:
 
             collections[collection] = obj
 
-        # ------------------------------------------------------------
-
-        # -------------------------------------------------------------
-        # STEP 3: Photon Pre-mix selection
+        # 3: Photon Pre-mix selection
         photons = collections.get("Photon")
 
         if self.photon_selection and photons is not None:
-            # 1. At least 4 photons
+            # At least 4 photons
             mask_4pho = lumi_hlt_mask & (ak.num(photons, axis=1) >= 4)
             store.add_metadata("cutflow_4photons", int(ak.sum(mask_4pho)))
 
             # Slicing first 4 photons
             pho4 = photons[:, :4]
 
-            # 2. Eta Acceptance
+            # Eta Acceptance
             abs_eta = np.abs(pho4.eta)
             eta_pass_each = (abs_eta < GAP_BARREL_ETA) | (
                 (abs_eta > GAP_ENDCAP_ETA) & (abs_eta < MAX_ETA)
@@ -165,21 +158,19 @@ class NanoReducer:
             mask_eta = mask_4pho & ak.all(eta_pass_each, axis=1)
             store.add_metadata("cutflow_eta", int(ak.sum(mask_eta)))
 
-            # 3. PixelSeed Veto
+            # PixelSeed Veto
             pixel_pass_each = pho4.pixelSeed == False
             mask_pixel = mask_eta & ak.all(pixel_pass_each, axis=1)
             store.add_metadata("cutflow_pixelSeed", int(ak.sum(mask_pixel)))
 
-            # 4. pT > 12 GeV
+            # pT > 12 GeV
             pt_pass_each = pho4.pt > 12.0
             event_mask = mask_pixel & ak.all(pt_pass_each, axis=1)
             store.add_metadata("cutflow_pt_cuts", int(ak.sum(event_mask)))
         else:
             event_mask = lumi_hlt_mask
 
-        #
         # Save filtered branches to EventStore
-        #
         store.add_scalar("__original_index__", original_index[event_mask])
 
         for name, obj in collections.items():
