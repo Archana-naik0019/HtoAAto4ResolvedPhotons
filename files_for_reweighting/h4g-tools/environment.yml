@@ -1,0 +1,25 @@
+name: h4g-tools
+channels:
+  - conda-forge
+dependencies:
+  - awkward
+  - coffea
+  - git-lfs
+  - hepconvert
+  - hyperopt
+  - matplotlib
+  - numpy
+  - pandas
+  - pip
+  - pyarrow>=10.0.1
+  - python
+  - rich
+  - root>=6.22,<=6.26
+  - scikit-learn
+  - seaborn
+  - setuptools=71
+  - uproot
+  - wandb=0.16.6
+  - xgboost=1.3.3
+  - xrootd
+

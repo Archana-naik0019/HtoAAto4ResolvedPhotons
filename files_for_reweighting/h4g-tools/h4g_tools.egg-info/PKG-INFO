@@ -1,0 +1,27 @@
+Metadata-Version: 2.4
+Name: h4g_tools
+Version: 0.0.1
+Summary: Tools for H->aa->gggg analysis.
+Author: Sergi Castells
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+
+# H4g Tools
+This repository is for tools for the H4g analysis including:
+ * BDT training and running
+
+```bash
+# H4g Tools Setup
+git clone ssh://git@gitlab.cern.ch:7999/castells/h4g-tools.git
+cd h4g-tools/
+
+conda create --file environment.yml  # I would recommend mamba for this...
+conda activate h4g-tools  # make empty environment if necessary to contain everything nicely
+python3 -m pip install -e .
+```
+
+NOTE:
+Make sure you clone paper_plots into the scripts directory. The plotting script (generate_plots.py) dumps a ROOT files with histograms there.
