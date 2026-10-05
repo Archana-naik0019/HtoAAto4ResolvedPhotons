@@ -412,7 +412,6 @@ def performNDimReweighting(
 
         values = array("d", [0.0] * len(plots))
         coord_ev = array("i", [0] * len(plots))     # fixes the segmentation fault
-        valtest = array("d", [0.0] * len(plots))
         for idx in range(entries):
             obj_to_read.GetEntry(idx)
 
@@ -420,7 +419,7 @@ def performNDimReweighting(
                 values[ivar] = findVal(obj_to_read, plot[0])
                 coord_ev[ivar] = histos[ivar].FindBin(values[ivar])
 
-            w = weight_ratio.GetBinContent(coord_ev)   # same as in the ratio loop; returns 0 for unfilled bins, no memory allocation
+            w = weight_ratio.GetBinContent(coord_ev)   # returns 0 for unfilled bins, no memory allocation
             mix_weight[0] = w if w > 0.0 else 1.0
 
             obj_to_fill.Fill()
