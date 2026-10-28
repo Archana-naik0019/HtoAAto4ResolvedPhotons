@@ -11,8 +11,9 @@ from h4g_tools.utils.loading import pathSetup, loadPerMass, loadSamples, fillHis
 from h4g_tools.utils.plotting import plot_smooth, plot_smooth_all, plot_reweighting, plotFancy, plot_smoothed_hists
 from h4g_tools.utils.scales import Scales as ScalesCls, SideBand, SignalRegion
 from h4g_tools.utils.runner_utils import get_parser_cats, handle_errors
-gROOT.LoadMacro("../h4g_tools/bdt/smoother.cpp")
-from ROOT import SmoothHist, SplitSignalHistograms, MergeHistograms, MergeGraphs
+gROOT.LoadMacro("/eos/user/a/arnaik/Higgs_AA_3Photons_analysis/Data_2024/resolved_4photons/files_for_reweighting/h4g-tools/h4g_tools/bdt/smoother.cpp")
+from ROOT import SmoothHist #added to check crash reason
+#from ROOT import SmoothHist, SplitSignalHistograms, MergeHistograms, MergeGraphs
 from operator import itemgetter
 import matplotlib
 import matplotlib.pyplot as plt
@@ -48,7 +49,8 @@ def plot_ams_score(
     for tup in inputs:
         if tup[0] > max_ams_noRes:
             max_ams_noRes = tup[0]
-        if tup[1] >= 10:
+        #if tup[1] >= 10:
+        if tup[1] >= 0: # this line is temporarily changed for a check (soon to be reverted back to 10)
             ams.append(tup[0])
             cut.append(translator_hist.GetXaxis().GetBinLowEdge(tup[2]))
             if tup[0] > max_ams:
@@ -119,18 +121,18 @@ if __name__ == "__main__":
     Scales = ScalesCls(args.year if "2024" not in args.year else "2024")
 
     print("\nLoading Signal samples:")
-    print(f"{cwd}/../../scripts/outputs/BDT/{args.year}/{args.xgb_name}/signal/")
-    signal = loadPerMass(f"{cwd}/../../scripts/outputs/BDT/{args.year}/{args.xgb_name}/signal/", ["BDT_score", "mass_gggg", "weight"], bdt=True)
+    print(f"{cwd}/outputs/BDT/{args.year}/{args.xgb_name}/signal/")
+    signal = loadPerMass(f"{cwd}/outputs/BDT/{args.year}/{args.xgb_name}/signal/", ["BDT_score", "mass_gggg", "weight"], bdt=True)
     print("\nLoading EM Background samples:")
-    print(f"{cwd}/../../scripts/outputs/BDT/{args.year}/{args.xgb_name}/background/")
-    background = loadPerMass(f"{cwd}/../../scripts/outputs/BDT/{args.year}/{args.xgb_name}/background/", ["BDT_score", "mass_gggg"], bdt=True)
+    print(f"{cwd}/outputs/BDT/{args.year}/{args.xgb_name}/background/")
+    background = loadPerMass(f"{cwd}/outputs/BDT/{args.year}/{args.xgb_name}/background/", ["BDT_score", "mass_gggg"], bdt=True)
     print("\nLoading Data samples:")
-    print(f"{cwd}/../../scripts/outputs/BDT/{args.year}/{args.xgb_name}/data/")
-    data = loadPerMass(f"{cwd}/../../scripts/outputs/BDT/{args.year}/{args.xgb_name}/data/", ["BDT_score", "mass_gggg"], bdt=True, nominalMassOnly=True)
+    print(f"{cwd}/outputs/BDT/{args.year}/{args.xgb_name}/data/")
+    data = loadPerMass(f"{cwd}/outputs/BDT/{args.year}/{args.xgb_name}/data/", ["BDT_score", "mass_gggg"], bdt=True, nominalMassOnly=True)
 
     print("\nChecking if inputs are transformed:")
     transformed = False
-    check_transformed = loadSamples(f"{cwd}/../../scripts/outputs/BDT/{args.year}/{args.xgb_name}/data/")
+    check_transformed = loadSamples(f"{cwd}/outputs/BDT/{args.year}/{args.xgb_name}/data/")
     if "BDT_score_orig" in check_transformed:
         transformed = True
     print(f"Transformed: {transformed}")
@@ -142,29 +144,29 @@ if __name__ == "__main__":
     retries = 10
 
     # 2sigma windows for calculating S and B
-    mean = {
-        "15_GeV": 124.4445,
-        "20_GeV": 124.3937,
-        "25_GeV": 124.5140,
-        "30_GeV": 124.4907,
-        "35_GeV": 124.5174,
-        "40_GeV": 124.5717,
-        "45_GeV": 124.2271,
-        "50_GeV": 124.5182,
-        "55_GeV": 124.3836,
-        "60_GeV": 124.2573
+    mean = { #these are actually mode or the peak values, I am not changing the name 'mean' to avoid changes in the downstream script for now
+        "15_GeV": 124.2441,
+        "20_GeV": 124.8493,
+        "25_GeV": 124.7523,
+        "30_GeV": 124.2560,
+        "35_GeV": 124.8466,
+        "40_GeV": 124.3499,
+        "45_GeV": 124.6516,
+        "50_GeV": 124.4504,
+        "55_GeV": 124.5464,
+        "60_GeV": 124.6489
     }
-    res = {
-        "15_GeV": 2.48,
-        "20_GeV": 2.46,
-        "25_GeV": 2.45,
-        "30_GeV": 2.41,
-        "35_GeV": 2.44,
-        "40_GeV": 2.46,
-        "45_GeV": 2.45,
-        "50_GeV": 2.47,
-        "55_GeV": 2.46,
-        "60_GeV": 2.50
+    res = { # calculated using an unbinned algo directly from the parquet files
+        "15_GeV": 2.49,
+        "20_GeV": 2.50,
+        "25_GeV": 2.50,
+        "30_GeV": 2.54,
+        "35_GeV": 2.56,
+        "40_GeV": 2.59,
+        "45_GeV": 2.63,
+        "50_GeV": 2.62,
+        "55_GeV": 2.61,
+        "60_GeV": 2.61
     }
     windows = {}
     for key in mean.keys():
@@ -173,6 +175,19 @@ if __name__ == "__main__":
     sig_samples_df = {}
     bkg_samples_df = {}
     data_samples_df = {}
+
+    #-----------------ADDING THIS SECTION TO GET SOME INTERMEDIATE INFO-*********************
+    import os
+    from ROOT import TFile
+    
+    # Create directory to store intermediate ROOT objects
+    debug_dir = f"{cwd}/plots/BDT/{args.year}/cats/{args.xgb_name}/intermediates"
+    os.makedirs(debug_dir, exist_ok=True)
+    
+    # Create a master ROOT file to store all steps, histograms, and smooth curves
+    debug_root_file = TFile(f"{debug_dir}/all_intermediate_steps.root", "RECREATE")
+    #---------------------********************************************************************
+    
     smoothed_hists_mass = {}
     print(f"\nNumber of categories set to {args.nCats}.")
     print(f"Number of bins set to {bins} (minus those left of {l_edge}).")
@@ -190,6 +205,8 @@ if __name__ == "__main__":
         print("Reweighting background to data...")
         bkg_sample_df = reweight1Dim(bkg_sample_df, data_sample_df, "BDT_score")
 
+        bkg_sample_df[["BDT_score", "1dimreweight"]].to_csv(f"reweighted_weights_{key}.csv", index=False) # to plot these values distribution
+
         # Add bkg/data samples to dictionaries
         sig_samples_df.update({key: sig_sample_df})
         bkg_samples_df.update({key: bkg_sample_df})
@@ -201,9 +218,9 @@ if __name__ == "__main__":
         print("Filling signal hist...")
         # Signal in signal region
         # WITH WINDOWS
-        #sig_hist_sig = fillHist(f"BDT_score", SignalRegion(sig_sample_df, window=windows[key]), [l_edge, r_edge], name=f"BDT_score_signal_SR_{key}", binsScale=bins, normalize=False, preventOverFlow=True)
+        sig_hist_sig = fillHist(f"BDT_score", SignalRegion(sig_sample_df, window=windows[key]), [l_edge, r_edge], name=f"BDT_score_signal_SR_{key}", binsScale=bins, normalize=False, preventOverFlow=True) # ***this was originally commented out
         # NO WINDOWS:
-        sig_hist_sig = fillHist(f"BDT_score", SignalRegion(sig_sample_df), [l_edge, r_edge], name=f"BDT_score_signal_SR_{key}", binsScale=bins, normalize=False, preventOverFlow=True)
+        #sig_hist_sig = fillHist(f"BDT_score", SignalRegion(sig_sample_df), [l_edge, r_edge], name=f"BDT_score_signal_SR_{key}", binsScale=bins, normalize=False, preventOverFlow=True) #***this was originally used in the code
         # Signal in sideband region
         sig_sideband = fillHist(f"BDT_score", SideBand(sig_sample_df), [l_edge, r_edge], name=f"BDT_score_signal_SB_{key}", binsScale=bins, normalize=False, preventOverFlow=True)
 
@@ -211,9 +228,9 @@ if __name__ == "__main__":
         print("Filling EM background hist...")
         # EM background in signal region
         # WITH WINDOWS:
-        #bkg_hist_sig = fillHist(f"BDT_score", SignalRegion(bkg_sample_df, window=windows[key]), [l_edge, 1.0], name=f"BDT_score_bkg_SR_{key}", binsScale=bins, normalize=False, customWeights="1dimreweight", preventOverFlow=True)
+        bkg_hist_sig = fillHist(f"BDT_score", SignalRegion(bkg_sample_df, window=windows[key]), [l_edge, 1.0], name=f"BDT_score_bkg_SR_{key}", binsScale=bins, normalize=False, customWeights="1dimreweight", preventOverFlow=True) #***this was originally commented out
         # NO WINDOWS:
-        bkg_hist_sig = fillHist(f"BDT_score", SignalRegion(bkg_sample_df), [l_edge, 1.0], name=f"BDT_score_bkg_SR_{key}", binsScale=bins, normalize=False, customWeights="1dimreweight", preventOverFlow=True)
+        #bkg_hist_sig = fillHist(f"BDT_score", SignalRegion(bkg_sample_df), [l_edge, 1.0], name=f"BDT_score_bkg_SR_{key}", binsScale=bins, normalize=False, customWeights="1dimreweight", preventOverFlow=True) #***this was originally used
         # EM background in sideband region
         bkg_sideband = fillHist(f"BDT_score", SideBand(bkg_sample_df), [l_edge, 1.0], name=f"BDT_score_bkg_SB_{key}", binsScale=bins, normalize=False, customWeights="1dimreweight", preventOverFlow=True)
 
@@ -224,6 +241,26 @@ if __name__ == "__main__":
         data_hist_sig = fillHist(f"BDT_score", SignalRegion(data_sample_df), [l_edge, 1.0], name=f"BDT_score_data_SR_{key}", binsScale=bins, normalize=False, preventOverFlow=True)
         # Data in sideband region
         data_sideband = fillHist(f"BDT_score", SideBand(data_sample_df), [l_edge, 1.0], name=f"BDT_score_data_SB_{key}", binsScale=bins, normalize=False, preventOverFlow=True)
+
+        #********************************-----------------------------------------------------------------
+        # 1: Raw & Reweighted Binned Histograms (Unnormalized)
+        # Create a sub-folder inside ROOT file for the current mass point
+        mass_dir = debug_root_file.mkdir(f"mass_{key}")
+        mass_dir.cd()
+        # Raw / Reweighted filled ROOT histograms preserving exact binning
+        sig_hist_sig.Clone(f"hist_sig_SR_raw").Write()
+        sig_sideband.Clone(f"hist_sig_SB_raw").Write()
+        bkg_hist_sig.Clone(f"hist_bkg_SR_reweighted").Write()   # Bkg SR after 1D reweighting
+        bkg_sideband.Clone(f"hist_bkg_SB_reweighted").Write()   # Bkg SB after 1D reweighting
+        data_hist_sig.Clone(f"hist_data_SR_raw").Write()
+        data_sideband.Clone(f"hist_data_SB_raw").Write()
+
+        # Raw bkg hists (BEFORE 1D reweight): same selection/binning, no customWeights
+        bkg_hist_sig_raw = fillHist(f"BDT_score", SignalRegion(bkg_sample_df, window=windows[key]), [l_edge, 1.0], name=f"BDT_score_bkg_SR_raw_{key}", binsScale=bins, normalize=False, preventOverFlow=True)
+        bkg_sideband_raw = fillHist(f"BDT_score", SideBand(bkg_sample_df), [l_edge, 1.0], name=f"BDT_score_bkg_SB_raw_{key}", binsScale=bins, normalize=False, preventOverFlow=True)
+        bkg_hist_sig_raw.Clone("hist_bkg_SR_raw").Write()
+        bkg_sideband_raw.Clone("hist_bkg_SB_raw").Write()
+        # ==================================================================-------------------------
         
         # Normalize background to data
         bkg_hist_sig.Scale(data_hist_sig.Integral() / bkg_hist_sig.Integral())
@@ -233,11 +270,18 @@ if __name__ == "__main__":
         sig_hist_sig.Scale(Scales.lumi_fb * 1.0 * 1.0 / Scales.sumw[args.year if "2024" not in args.year else "2024"][key])
         sig_sideband.Scale(Scales.lumi_fb * 1.0 * 1.0 / Scales.sumw[args.year if "2024" not in args.year else "2024"][key])
 
+        # ************************------------------------------------------------------------------
+        # 2: Normalized / Rescaled Histograms
+        mass_dir.cd()
+        sig_hist_sig.Clone(f"hist_sig_SR_normalized").Write()
+        bkg_hist_sig.Clone(f"hist_bkg_SR_normalized").Write()
+        #-------------------***********************************************
+
 
         ########################################################################
         ### Smooth signal region histograms
-        bkg_data_smoothness = 8
-        #bkg_data_smoothness = 7.5
+        #bkg_data_smoothness = 8
+        bkg_data_smoothness = 7.5
         bkg_data_span = -1.0
         print("\nCalculating signficance with BDT distributions:")
         print(f"Signal smoothness set to {args.smoothness}")
@@ -314,6 +358,27 @@ if __name__ == "__main__":
             count_retries += 1
         assert data_sb_graph.GetN() == bkg_sb_graph.GetN(), f"Failed to smooth data. Data N: {data_sb_graph.GetN()}\t Background N: {bkg_sb_graph.GetN()}"
 
+
+        # *************************************---------------------------------------------
+        #3: All Smoothed Histograms & Continuous TGraphs
+        mass_dir.cd()
+    
+        # 1. Smoothed Histograms (TH1D)
+        sig_graph_hist.Clone("hist_sig_SR_smoothed").Write()
+        sig_sb_graph_hist.Clone("hist_sig_SB_smoothed").Write()
+        bkg_graph_hist.Clone("hist_bkg_SR_smoothed").Write()
+        bkg_sb_graph_hist.Clone("hist_bkg_SB_smoothed").Write()
+        data_sb_graph_hist.Clone("hist_data_SB_smoothed").Write()
+    
+        # 2. Smoothed Continuous Curves (TGraph)
+        sig_graph.Clone("graph_sig_SR_smooth_curve").Write()
+        sig_sb_graph.Clone("graph_sig_SB_smooth_curve").Write()
+        bkg_graph.Clone("graph_bkg_SR_smooth_curve").Write()
+        bkg_sb_graph.Clone("graph_bkg_SB_smooth_curve").Write()
+        data_sb_graph.Clone("graph_data_SB_smooth_curve").Write()
+    
+        debug_root_file.cd()
+        #-----------------------------------------*****************************
 
         # Plot BDT distributions used in AMS calculation
         # Signal in SR, other in SB - input hist + smoothed graph

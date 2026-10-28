@@ -30,15 +30,28 @@ std::tuple<TH1D*, TGraph*> SmoothHist(std::string name, TH1D* hist, Float_t smoo
     for (int i=0; i < smoothed_hist->GetNbinsX(); ++i) {
         double x,y;
         smooth->GetPoint(i, x, y);
+
+        //--------------------------------------------------------------------******************************************* original version
+        /*
         if(i < smoothed_hist->GetNbinsX() - 2) {
-            smoothed_hist->SetBinContent(i, smooth->Eval(x, 0, "S"));
+            smoothed_hist->SetBinContent(i, smooth->Eval(x, 0, "S")); 
         }
         else {
             double x2,y2;
             smooth->GetPoint(i-1, x2, y2);
             std::cout << y2 << std::endl;
-            smoothed_hist->SetBinContent(i, (smooth->Eval(x, 0, "S") + y2) / 2.0);  // Acount for edge case where it uses spline wrong
+            smoothed_hist->SetBinContent(i, (smooth->Eval(x, 0, "S") + y2) / 2.0);  // Acount for edge case where it uses spline wrong 
         }
+        */
+        //---------------------------------------------------------------------********************************************
+        
+        //updated version
+        if (i == smoothed_hist->GetNbinsX() - 1) {
+            std::cout << "last: y=" << y << "  Eval(S)=" << smooth->Eval(x, 0, "S") << std::endl;  // temporary check
+        }
+        smoothed_hist->SetBinContent(i+1, smooth->Eval(x, 0, "S"));  // all bins treated the same, no edge averaging
+        
+        //************************************************************-------------------------------------------------
     }
     for (unsigned short i=1; i < smoothed_hist->GetNbinsX(); ++i) {
         smoothed_hist->SetBinError(i, 0);
