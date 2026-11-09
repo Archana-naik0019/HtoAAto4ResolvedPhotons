@@ -395,6 +395,25 @@ def performNDimReweighting(
         if makeWeightPlots:
             hist2D.Fill(ibin, ratio, evtmix_value)
 
+    #-------------temporarily adding print statement to check number of empty bins---
+    total_bins = 1
+    for n in axis_nbins:
+        total_bins *= (n + 2)          # +2 for under/overflow
+    
+    n_mix  = weight_evtmix.GetNbins()  # bins with mix entries
+    n_data = weight_data.GetNbins()    # bins with data entries
+    
+    # data-only bins: filled in data but not in mix
+    n_data_only = 0
+    for ibin in range(n_data):
+        weight_data.GetBinContent(ibin, coord)
+        if weight_evtmix.GetBinContent(coord) == 0.0:
+            n_data_only += 1
+    
+    n_neither = total_bins - n_mix - n_data_only
+    print(f"total={total_bins}, mix-filled={n_mix}, data-only={n_data_only}, empty in both={n_neither}")
+    #---------------------------------------------------------------------------------
+
     # Writing weights as new branch in identical event mixing TTree - saved as parquet for sorting with other DataFrames
     print(f"Converting event mixing dataset and weights to DataFrame for {len(dims)} dimensions...")
     evtmix_tree = TTree("Events", "Events")
@@ -412,6 +431,7 @@ def performNDimReweighting(
 
         values = array("d", [0.0] * len(plots))
         coord_ev = array("i", [0] * len(plots))     # fixes the segmentation fault
+        valtest = array("d", [0.0] * len(plots))
         for idx in range(entries):
             obj_to_read.GetEntry(idx)
 
@@ -419,7 +439,7 @@ def performNDimReweighting(
                 values[ivar] = findVal(obj_to_read, plot[0])
                 coord_ev[ivar] = histos[ivar].FindBin(values[ivar])
 
-            w = weight_ratio.GetBinContent(coord_ev)   # returns 0 for unfilled bins, no memory allocation
+            w = weight_ratio.GetBinContent(coord_ev)   # same as in the ratio loop; returns 0 for unfilled bins, no memory allocation
             mix_weight[0] = w if w > 0.0 else 1.0
 
             obj_to_fill.Fill()

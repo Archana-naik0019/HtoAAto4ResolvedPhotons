@@ -3,6 +3,7 @@ import gc
 from h4g_tools.utils.runner_utils import handle_errors
 from h4g_tools.utils.loading import pathSetup
 from h4g_tools.bdt.reweight import performNDimReweighting
+#from h4g_tools.bdt.reweightTHnSparse import performNDimReweighting
 
 
 """

@@ -285,7 +285,8 @@ def run_bdt(
                     reduce_df = True,
                     extra = extra,
                     eras = eras,
-                    mass = True if args.train else False
+                    mass = True if args.train else False,
+                    variation = "nominal" # added by me, otherwise it causes issues in the additional files I am pooling out from input_plotter.py
                 )
             })
 

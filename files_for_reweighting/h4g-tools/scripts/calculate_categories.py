@@ -144,17 +144,19 @@ if __name__ == "__main__":
     retries = 10
 
     # 2sigma windows for calculating S and B
+    '''
+    #for old preselection
     mean = { #these are actually mode or the peak values, I am not changing the name 'mean' to avoid changes in the downstream script for now
-        "15_GeV": 124.2441,
-        "20_GeV": 124.8493,
-        "25_GeV": 124.7523,
-        "30_GeV": 124.2560,
-        "35_GeV": 124.8466,
-        "40_GeV": 124.3499,
-        "45_GeV": 124.6516,
-        "50_GeV": 124.4504,
-        "55_GeV": 124.5464,
-        "60_GeV": 124.6489
+        "15_GeV": 124.3951,
+        "20_GeV": 124.4051,
+        "25_GeV": 124.4228,
+        "30_GeV": 124.4523,
+        "35_GeV": 124.4457,
+        "40_GeV": 124.4791,
+        "45_GeV": 124.4695,
+        "50_GeV": 124.4765,
+        "55_GeV": 124.4105,
+        "60_GeV": 124.3225
     }
     res = { # calculated using an unbinned algo directly from the parquet files
         "15_GeV": 2.49,
@@ -168,6 +170,34 @@ if __name__ == "__main__":
         "55_GeV": 2.61,
         "60_GeV": 2.61
     }
+    '''
+
+    #for new preselection
+    mean = { #these are actually mode or the peak values, I am not changing the name 'mean' to avoid changes in the downstream script for now
+        "15_GeV": 124.3801,
+        "20_GeV": 124.3703,
+        "25_GeV": 124.4120,
+        "30_GeV": 124.4513,
+        "35_GeV": 124.4505,
+        "40_GeV": 124.4893,
+        "45_GeV": 124.4304,
+        "50_GeV": 124.4779,
+        "55_GeV": 124.4085,
+        "60_GeV": 124.3085
+    }
+    res = { # calculated using an unbinned algo directly from the parquet files
+        "15_GeV": 2.49,
+        "20_GeV": 2.49,
+        "25_GeV": 2.50,
+        "30_GeV": 2.56,
+        "35_GeV": 2.55,
+        "40_GeV": 2.58,
+        "45_GeV": 2.62,
+        "50_GeV": 2.61,
+        "55_GeV": 2.60,
+        "60_GeV": 2.60
+    }
+    
     windows = {}
     for key in mean.keys():
         windows.update({key: [mean[key] - 2*res[key], mean[key] + 2*res[key]]})
@@ -191,13 +221,36 @@ if __name__ == "__main__":
     smoothed_hists_mass = {}
     print(f"\nNumber of categories set to {args.nCats}.")
     print(f"Number of bins set to {bins} (minus those left of {l_edge}).")
+
+    # ******%%%%---- 80/20 split: test = global row index % 5 == 0 (must match split_dataset in training) ----
+    
+    TEST_MOD = 5
+    sig_offset, _o = {}, 0
+    for _m in range(15, 65, 5):
+        _k = f"{_m}_GeV"
+        sig_offset[_k] = _o   # signal was stacked 15, 20, ..., 60 in training, so the index is global
+        _o += len(signal[_k])
+        
+    # ******%%%%---------------------------------------------------------------------------------------------
+    
     for idx, key in enumerate([f"{m}_GeV" for m in range(15,65,5)]):
         print(f"\n\n ~~~~~~~  Starting smoothing procedure for mass point: {key.replace('_',' ')}  ~~~~~~~")
+
+        '''
         print("Keeping test (even) events only for signal and background.")
         #sig_sample_df = signal[key]
         #bkg_sample_df = background[key]
         sig_sample_df = signal[key].iloc[lambda x: x.index % 2 == 0]  # Even rows only (test set)
         bkg_sample_df = background[key].iloc[lambda x: x.index % 2 == 0]  # Even rows only (test set)
+        '''
+        #************%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        print(f"Keeping test events only (global index % {TEST_MOD} == 0) for signal and background.")
+        sig_sample_df = signal[key][((signal[key].index + sig_offset[key]) % TEST_MOD == 0) & (signal[key]["weight"] < 10.0)]
+        bkg_sample_df = background[key][background[key].index % TEST_MOD == 0]
+        print(f"[check] test events: signal {len(sig_sample_df)}, background {len(bkg_sample_df)}")
+        
+        #*********%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         sig_sample_df.reset_index(inplace=True)
         bkg_sample_df.reset_index(inplace=True)
         data_sample_df = data[key]

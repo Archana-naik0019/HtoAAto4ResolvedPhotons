@@ -13,6 +13,11 @@ import h4g_tools.utils.loading as loading
 import h4g_tools.utils.plotting as plotting
 import h4g_tools.bdt.input_plotter as input_plotter
 
+import sys
+from sklearn.metrics import roc_curve
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 
 def define_variables(
@@ -129,6 +134,7 @@ def reduce_dataframe(
 
     return df[training]
 
+TEST_MOD = 5 # added for the 20-80 split
 def split_dataset(
     dataset: pd.DataFrame
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -136,9 +142,13 @@ def split_dataset(
     Split dataset into training and testing. Use even and odd rows.
     """
 
-    test = dataset.iloc[lambda x: x.index % 2 == 0]  # Even rows only
-    train = dataset.iloc[lambda x: x.index % 2 == 1]  # Odd rows only
+    #test = dataset.iloc[lambda x: x.index % 2 == 0]  # Even rows only
+    #train = dataset.iloc[lambda x: x.index % 2 == 1]  # Odd rows only # changing this to check how it goes
 
+    is_test = (dataset.index % TEST_MOD == 0)
+    test = dataset[is_test]
+    train = dataset[~is_test]
+    
     #train = dataset.head(int(len(dataset)*0.7))  # 70% used for training
     #test = dataset.head(int(len(dataset)*0.3))  # 30% used for testing
 
@@ -164,6 +174,15 @@ def prep_samples(
     signal = signal[signal.weight < 10.0]
     drop_rate = (1 - len(signal) / drop_rate) * 100.0
     print(f"Dropped {drop_rate:.3}% of signal events due to large event weights.")
+
+    # ---- Per-mass train/test counts (same odd/even rule as split_dataset) ----************************************
+    mpt = ((signal["LeadPs_mass"] - signal["LeadPs_interMass"] * signal["mass_gggg"]) / 5).round() * 5
+    #tr_m = mpt[signal.index % 2 == 1].value_counts().sort_index()
+    #te_m = mpt[signal.index % 2 == 0].value_counts().sort_index()
+    tr_m = mpt[signal.index % TEST_MOD != 0].value_counts().sort_index()
+    te_m = mpt[signal.index % TEST_MOD == 0].value_counts().sort_index()
+    print(pd.DataFrame({"train": tr_m, "test": te_m, "train/test": tr_m / te_m}))
+    #------------------------**************************************************************************************
 
     # NOTE: weights are created from genWeight and then modified for systematics and/or corrections in processor, so this is logically equivalent to scaling based on genWeight
 
@@ -218,10 +237,52 @@ def train_ES_bdt(
     # Set model name for file saving
     xgb_name = modelPath.split("/")[-1].replace(".xgb","")
 
+    # ---- DEBUG A: raw inputs, before any processing ----**********************
+    DEBUG_EXIT = False   # set False once the counts look right
+    m_gggg = np.asarray(mass_gggg["signal"])
+    print("\n[DBG-A] signal rows:", len(signal), "| mass_gggg(sig) len:", len(m_gggg))
+    print("[DBG-A] bkg rows:", len(bkg_weights), "| mass_gggg(bkg) len:", len(mass_gggg["background"]))
+    print("[DBG-A] signal index unique:", signal.index.is_unique,
+          "| clean 0..N-1:", signal.index.equals(pd.RangeIndex(len(signal))))
+    print("[DBG-A] signal columns:", list(signal.columns))
+    print("[DBG-A] variation-like columns:",
+          [c for c in signal.columns if "var" in c.lower() or "syst" in c.lower()])
+
+    mpt_raw = pd.Series(((signal["LeadPs_mass"].to_numpy()
+                          - signal["LeadPs_interMass"].to_numpy() * m_gggg[:len(signal)]) / 5).round() * 5,
+                        index=signal.index)
+    raw = pd.DataFrame({"n_rows": mpt_raw.value_counts().sort_index()})
+    raw["n_weight<10"] = signal["weight"].lt(10.0).groupby(mpt_raw).sum()
+    print(raw)
+
+    # duplicate / replication checks
+    key = [c for c in ["pho1_mvaID", "pho2_mvaID", "pho3_mvaID", "pho4_mvaID",
+                       "LeadPs_pt", "SubleadPs_pt"] if c in signal.columns]
+    tmp = signal[key].copy()
+    tmp["mpt"] = mpt_raw.to_numpy()
+    tmp["w"] = signal["weight"].to_numpy()
+    tmp["inter"] = signal["LeadPs_interMass"].to_numpy()
+    g = tmp.groupby(key + ["mpt"])
+    print("[DBG-A] unique (event, mass point):", g.ngroups, "of", len(tmp))
+    print("[DBG-A] copies per event:\n", g.size().value_counts().head())
+    print("[DBG-A] distinct weights per event:\n", g["w"].nunique().value_counts().head())
+    print("[DBG-A] distinct interMass per event:\n", g["inter"].nunique().value_counts().head())
+    if DEBUG_EXIT:
+        sys.exit()
+    # ---- END DEBUG A ----***************************************************
+
     # Prepare samples for training
     signal = pd.concat([signal, pd.Series(mass_gggg["signal"], name="mass_gggg")], axis=1)
     bkg_weights = pd.concat([bkg_weights, pd.Series(mass_gggg["background"], name="mass_gggg")], axis=1)
     sig_train, bkg_train, dtrain, dtest = prep_samples(signal, bkg_weights, year, Scales=Scales)
+
+    # ---- DEBUG B ----****************************************
+    print("\n[DBG-B] sig_train:", len(sig_train), "| bkg_train:", len(bkg_train),
+          "| dtrain:", len(dtrain), "| dtest:", len(dtest))
+    print("[DBG-B] NaNs in mass_gggg (signal):", signal["mass_gggg"].isna().sum())
+    print("[DBG-B] sig_train index unique:", sig_train.index.is_unique)
+    #sys.exit() # adding temporarily
+    # ---- END DEBUG B ----***********************************
 
     # Plot samples here to confirm what goes into BDT exactly
     # To confirm with weights what is being used for the BDT models!
@@ -456,6 +517,89 @@ def train_ES_bdt(
     # Remember that masss_gggg is in results for correlation matrix
     for (key, val), df in zip(results.items(), [dtrain, dtest]):
         results[key] = pd.concat([pd.Series(val, name="BDT_score"), df], axis=1)
+
+
+    # ***********************************************************************------------------------------------
+    # ---- Net and per-mass-point AUC (train and test) ----
+    # Rebuild the same splits as prep_samples (same weight<10 cut, same even/odd rule)
+    sig_all = signal[signal.weight < 10.0]
+    sig_tr, sig_te = split_dataset(sig_all)
+    bkg_tr, bkg_te = split_dataset(bkg_weights)
+
+    def mass_point(df):
+        # interMass = (m_reco - m_hyp) / m_gggg  ->  m_hyp
+        return ((df["LeadPs_mass"] - df["LeadPs_interMass"] * df["mass_gggg"]) / 5).round() * 5
+
+    def auc_pair(y, score, w):
+        return {"auc": float(roc_auc_score(y, score)),
+                "auc_weighted": float(roc_auc_score(y, score, sample_weight=w))}
+
+    auc_summary = {}
+    roc_store = {} # added for mass specific ROC
+    rows = []
+    for split, s, b in [("train", sig_tr, bkg_tr), ("test", sig_te, bkg_te)]:
+        s_score = predict_BDT(bdt, reduce_dataframe(s))
+        b_score = predict_BDT(bdt, reduce_dataframe(b))
+        s_w = s["weight"].to_numpy()
+        b_w = b["Ndimreweight"].to_numpy()  # global bkg rescaling cancels in a weighted AUC
+        s_mpt = mass_point(s).to_numpy()
+
+        y = np.concatenate([np.ones(len(s_score)), np.zeros(len(b_score))])
+        net = auc_pair(y, np.concatenate([s_score, b_score]), np.concatenate([s_w, b_w]))
+        # ---- net ROC curve (added later) ----
+        fpr_n, tpr_n, _ = roc_curve(y, np.concatenate([s_score, b_score]),
+                                    sample_weight=np.concatenate([s_w, b_w]))
+        roc_store[(split, "net")] = (fpr_n, tpr_n)
+        # -------------------------------
+        
+        auc_summary[split] = {"net": net, "per_mass": {}}
+
+        for m in sorted(set(s_mpt)):
+            sel = s_mpt == m
+            y_m = np.concatenate([np.ones(sel.sum()), np.zeros(len(b_score))])
+            sc_m = np.concatenate([s_score[sel], b_score])
+            w_m = np.concatenate([s_w[sel], b_w])
+            res = auc_pair(y_m, sc_m, w_m)
+            fpr, tpr, _ = roc_curve(y_m, sc_m, sample_weight=w_m)
+            roc_store[(split, int(m))] = (fpr, tpr)
+            auc_summary[split]["per_mass"][str(int(m))] = res
+            rows.append({"split": split, "mass": int(m), "n_sig": int(sel.sum()), **res})
+        rows.append({"split": split, "mass": "net", "n_sig": len(s_score), **net})
+
+    auc_dir = f"{cwd}/../../scripts/plots/BDT/{year}/{xgb_name}"
+    os.makedirs(auc_dir, exist_ok=True)
+    with open(f"{auc_dir}/AUC_{year}.json", "w") as f:
+        json.dump(auc_summary, f, indent=4)
+    auc_table = pd.DataFrame(rows)
+    auc_table.to_csv(f"{auc_dir}/AUC_{year}.csv", index=False)
+    print("\nAUC summary (signal per mass point vs all bkg):")
+    print(auc_table.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
+
+    #-----------******************^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    np.savez(f"{auc_dir}/ROC_curves_{year}.npz",
+             **{f"{sp}_{m}_{k}": v for (sp, m), (f_, t_) in roc_store.items()
+                for k, v in (("fpr", f_), ("tpr", t_))})
+
+    for split in ["train", "test"]:
+        fig, ax = plt.subplots(figsize=(7, 6))
+        for (sp, m), (f_, t_) in sorted(roc_store.items(), key=lambda kv: str(kv[0][1])):
+            if sp != split:
+                continue
+            a = auc_summary[split]["net"]["auc_weighted"] if m == "net" else auc_summary[split]["per_mass"][str(m)]["auc_weighted"]
+            lab = f"net (AUC={a:.3f})" if m == "net" else f"{m} GeV (AUC={a:.3f})"
+            ax.plot(f_, t_, lw=2.5 if m == "net" else 1.2, ls="--" if m == "net" else "-", label=lab)
+        ax.plot([0, 1], [0, 1], "k:", lw=0.8)
+        ax.set_xlabel("Background efficiency"); ax.set_ylabel("Signal efficiency")
+        ax.set_title(f"ROC per signal mass point ({split})"); ax.legend(fontsize=7, ncol=2)
+        fig.savefig(f"{auc_dir}/ROC_per_mass_{split}_{year}.pdf"); plt.close(fig)
+
+    # overtraining check per mass point
+    for m in sorted(auc_summary["train"]["per_mass"]):
+        tr = auc_summary["train"]["per_mass"][m]["auc_weighted"]
+        te = auc_summary["test"]["per_mass"][m]["auc_weighted"]
+        print(f"[DBG-ROC] {m} GeV: train AUC {tr:.4f} | test AUC {te:.4f} | gap {tr - te:+.4f}")
+    # *****************************************************************------------------------------------------
 
     # Plot predictions
     plotting.plot_test_train(results, year=year, xgb_name=xgb_name)

@@ -21,7 +21,8 @@ def defineAMS(
     expr = 2.0 * ((S + B) * log_e - S)
     sq = sqrt(expr)
 
-    min_evt_sb = 10
+    #min_evt_sb = 10
+    min_evt_sb = 0
     #if sq > 0.0 and B_sb >= min_evt_sb and D_sb >= min_evt_sb and B > 0:
     if sq > 0.0 and D_sb >= min_evt_sb and B > 0 and not return_all:
         return sq
