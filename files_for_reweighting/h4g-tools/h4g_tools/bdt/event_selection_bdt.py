@@ -134,7 +134,7 @@ def reduce_dataframe(
 
     return df[training]
 
-TEST_MOD = 5 # added for the 20-80 split
+TEST_MOD = 2 # added for the 20-80 split
 def split_dataset(
     dataset: pd.DataFrame
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:

@@ -49,8 +49,8 @@ def plot_ams_score(
     for tup in inputs:
         if tup[0] > max_ams_noRes:
             max_ams_noRes = tup[0]
-        #if tup[1] >= 10:
-        if tup[1] >= 0: # this line is temporarily changed for a check (soon to be reverted back to 10)
+        if tup[1] >= 10: # setting this for now, as without any lower bound on this, the data sb ends up with 1 or 3 events for some mass points.
+        #if tup[1] >= 0: # this line is temporarily changed for a check (soon to be reverted back to 10)
             ams.append(tup[0])
             cut.append(translator_hist.GetXaxis().GetBinLowEdge(tup[2]))
             if tup[0] > max_ams:
@@ -224,7 +224,7 @@ if __name__ == "__main__":
 
     # ******%%%%---- 80/20 split: test = global row index % 5 == 0 (must match split_dataset in training) ----
     
-    TEST_MOD = 5
+    TEST_MOD = 2
     sig_offset, _o = {}, 0
     for _m in range(15, 65, 5):
         _k = f"{_m}_GeV"
