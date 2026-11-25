@@ -11,7 +11,9 @@ base = os.path.join(here, 'outputs', 'BDT', year, xgb_name)
 #It makes use of the cats_{1}.txt obtained from running the calculate_categories.py
 #cats_txt = open(os.path.join(here, 'cats', year, xgb_name, f'cats{nCats}.txt')).read()
 #--------------for now..for 2 sigma-----
-SUB = '2_sigma_corrected'
+#SUB = '2_sigma_corrected'
+#SUB = '2_sigma_corrected_10DataSB'
+SUB = 'direct2_sigma_corrected_10DataSB'
 cats_txt = open(os.path.join(here, 'cats', year, xgb_name, SUB, f'cats{nCats}.txt')).read()
 #-------------------------------------
 

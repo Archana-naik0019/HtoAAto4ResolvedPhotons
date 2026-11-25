@@ -2,7 +2,9 @@ import os, sys, glob
 import pandas as pd
 import h4g_tools.utils.loading as l
 
-SCRIPT = 'calculate_categories.py'
+#SCRIPT = 'calculate_categories.py'
+#SCRIPT = 'AMS_crossCheck.py'
+SCRIPT = 'BDT_cuts_calc.py'
 year = sys.argv[sys.argv.index('-y') + 1]
 xgb_name = sys.argv[sys.argv.index('-xgb') + 1]
 here = os.path.dirname(os.path.abspath(SCRIPT))
@@ -56,7 +58,9 @@ old = '[f"{m}_GeV" for m in range(15,65,5)]'
 assert old in src, 'mass list pattern not found in script'
 src = src.replace(old, 'OK_LIST')
 # ---- redirect outputs into a 2_sigma subfolder ----
-SUB = '2_sigma_corrected'
+#SUB = '2_sigma_corrected_10DataSB'
+SUB = '2sigma_newPreselFinal'
+#SUB = 'direct2_sigma_corrected_10DataSB'
 for pat in ['/cats/{args.xgb_name}/',                 # plots (main block)
             '/cats/{xgb_name}/',                      # plots (inside plot_ams_score)
             '/cats/{year}/{xgb_name}/',               # ams_vs_bdt.json
